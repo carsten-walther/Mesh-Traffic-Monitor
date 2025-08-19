@@ -10,6 +10,8 @@ from src.Interface import Interface
 from src.Settings import Settings
 from ui.MainWindow import MainWindow
 
+# https://github.com/pdxlocations/Meshtastic-Python-Examples/blob/main/print-packets.py
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',

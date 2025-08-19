@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import QSize, Qt, QSortFilterProxyModel
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QToolBar
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QToolBar, QMessageBox, QTableView, QAbstractItemView, \
+    QHeaderView
 
 from ui.ConnectionDialog import ConnectionDialog
 from ui.LogWindow import LogWindow
+from ui.model.Packet import PacketModel
+from src.Packet import Packet
 
 
 class MainWindow(QMainWindow):
@@ -15,12 +18,16 @@ class MainWindow(QMainWindow):
 
         self.settings = settings
         self.interface = interface
+        self.interface.packet_received.connect(self.on_packet_received)
 
         self.log_window = LogWindow(settings=self.settings, interface=self.interface)
 
         self.connect_action = None
         self.nodes_action = None
         self.log_action = None
+
+        self.model_packet = PacketModel()
+        self.model_packet_proxy = QSortFilterProxyModel()
 
         self.init_ui()
 
@@ -35,6 +42,23 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout(central_widget)
+
+        self.model_packet_proxy.setSourceModel(self.model_packet)
+
+        table = QTableView()
+        table.setModel(self.model_packet_proxy)
+        table.setSortingEnabled(True)
+        table.setWordWrap(True)
+        table.verticalHeader().setVisible(False)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
+        header = table.horizontalHeader()
+        for i in range(0, header.count()):
+            header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+        header.setStretchLastSection(True)
+
+        main_layout.addWidget(table)
+
 
         self.create_toolbar()
         self.create_menu()
@@ -119,6 +143,14 @@ class MainWindow(QMainWindow):
             self.log_window.hide()
         else:
             self.log_window.show()
+
+    def on_packet_received(self, packet: Packet):
+        self.model_packet.items.append((
+            packet.rx_time, packet.from_node, packet.to_node, packet.port_number,
+            packet.rx_snr, packet.rx_rssi, packet.hop_limit, packet.hop_start,
+            packet.payload
+        ))
+        self.model_packet.layoutChanged.emit()
 
     def closeEvent(self, event):
         if self.interface.running:

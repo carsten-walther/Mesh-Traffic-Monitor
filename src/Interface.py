@@ -44,7 +44,6 @@ class Interface(QThread):
             try:
                 self.interface.close()
                 self.log_message.emit("INFO", f"Connection closed")
-                logging.info(f"Connection closed")
             except:
                 pass
         self.wait()
@@ -52,9 +51,7 @@ class Interface(QThread):
     def run(self):
         try:
             self.running = True
-
-            self.log_message.emit("INFO", f"Connecting via {self.type}")
-            logging.info(f"Connecting")
+            self.log_message.emit("INFO", f"Connecting via {self.type} on {self.port}{self.host}{self.addr}")
 
             if self.type == 'serial':
                 self.interface = meshtastic.serial_interface.SerialInterface(self.port)
@@ -64,9 +61,6 @@ class Interface(QThread):
                 self.interface = meshtastic.ble_interface.BLEInterface(self.addr)
 
             self.connection_status.emit(True, f"Connected")
-
-            self.log_message.emit("INFO", f"Interface started via {self.type}")
-            logging.info(f"Interface started")
 
             def on_connection_established(interface, topic=pub.AUTO_TOPIC):
                 self.connection_established()
@@ -92,7 +86,6 @@ class Interface(QThread):
         except Exception as e:
             self.log_message.emit("ERROR", f"Connection error: {str(e)}")
             self.connection_status.emit(False, str(e))
-            logging.error(f"Connection error: {str(e)}")
 
     def discover_nodes(self):
         try:
@@ -103,7 +96,6 @@ class Interface(QThread):
                         self.node_discovered.emit(node_info)
         except Exception as e:
             self.log_message.emit("ERROR", f"Error discovering nodes: {str(e)}")
-            logging.error(f"Error discovering nodes: {str(e)}")
 
     def parse_node_info(self, node_id: str, node_data: dict) -> Optional[Node]:
         try:
@@ -131,39 +123,38 @@ class Interface(QThread):
 
         except Exception as e:
             self.log_message.emit("ERROR", f"Error parsing node info: {str(e)}")
-            logging.error(f"Error parsing node info: {str(e)}")
             return None
 
     def connection_established(self):
         self.log_message.emit("INFO", f"Connection established")
-        logging.info(f"Connection established")
 
     def connection_lost(self):
         self.log_message.emit("INFO", f"Connection lost")
-        logging.info(f"Connection lost")
 
     def node_updated(self):
         self.log_message.emit("INFO", f"Node updated")
-        logging.info(f"Node updated")
 
     def process_packet(self, packet: dict):
         try:
             packet_data = Packet(
-                timestamp=datetime.now(timezone.utc),
                 from_node=str(packet.get('from', 'Unknown')),
                 to_node=str(packet.get('to', 'Unknown')),
-                message_type=packet.get('decoded', {}).get('portnum', 'Unknown'),
+                relay_node=str(packet.get('relayNode', 'Unknown')),
+                channel=str(packet.get('channel', '')),
+                port_number=packet.get('decoded', {}).get('portnum', 'Unknown'),
                 payload_size=len(str(packet.get('decoded', {}).get('payload', ''))),
-                snr=packet.get('rxSnr'),
-                rssi=packet.get('rxRssi'),
+                id=int(packet.get('id', '')),
+                rx_time=datetime.fromtimestamp(packet.get('rxTime', 0), timezone.utc) if packet.get('rxTime', None) else datetime.now(timezone.utc),
+                from_id=str(packet.get('fromId', '')),
+                to_id=str(packet.get('toId', '')),
+                rx_snr=packet.get('rxSnr'),
+                rx_rssi=packet.get('rxRssi'),
                 hop_limit=packet.get('hopLimit'),
+                hop_start=packet.get('hopStart'),
                 payload=str(packet.get('decoded', {}).get('payload', ''))
             )
 
             self.packet_received.emit(packet_data)
-            self.log_message.emit("DEBUG", f"Packet received: {packet_data.from_node} -> {packet_data.to_node}")
-            logging.debug(f"Packet received: {packet_data.from_node} -> {packet_data.to_node}")
 
         except Exception as e:
             self.log_message.emit("ERROR", f"Error processing packet: {str(e)}")
-            logging.error(f"Error processing packet: {str(e)}")

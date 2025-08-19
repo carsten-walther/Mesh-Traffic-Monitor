@@ -121,6 +121,7 @@ class ConnectionDialog(QDialog):
 
     def scan_serial_ports(self):
         self.port_combo.clear()
+        self.port_combo.addItem("")
         for port in serial.tools.list_ports.comports():
             self.port_combo.addItem(f"{port.device}")
         if self.port_combo.count() == 0:
@@ -128,6 +129,7 @@ class ConnectionDialog(QDialog):
 
     def scan_ble_addresses(self):
         self.addr_combo.clear()
+        self.addr_combo.addItem("")
         for device in BLEInterface.scan():
             self.addr_combo.addItem(f"{device}")
         if self.addr_combo.count() == 0:
