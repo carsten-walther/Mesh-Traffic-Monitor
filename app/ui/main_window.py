@@ -69,17 +69,18 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(vertical_splitter)
 
         # Tab-Widget oben
-        tab_widget = QTabWidget()
+        tab_widget = QTabWidget(self)
 
         # Tab 1: Übersicht
-        tab1 = QWidget()
+        tab1 = QWidget(tab_widget)
         tab1_layout = QVBoxLayout(tab1)
         #tab1_layout.setContentsMargins(0, 0, 0, 0)
         tab1_layout.addWidget(self.create_packet_table())
         tab_widget.addTab(tab1, "Packets")
 
         vertical_splitter.addWidget(tab_widget)
-        vertical_splitter.addWidget(self.create_log_table())
+        self.log_table = self.create_log_table()
+        vertical_splitter.addWidget(self.log_table)
 
         splitter.addWidget(right_widget)
         splitter.adjustSize()
@@ -97,6 +98,9 @@ class MainWindow(QMainWindow):
 
         self.topbar.add_button("Connect", "connect.svg", self.connect)
         self.topbar.add_button("Disconnect", "disconnect.svg", self.disconnect, False)
+        self.topbar.add_separator()
+        self.topbar.add_button("Log", "console.svg", self.toggle_log, True, True)
+        self.topbar.actions_call["Log"].setChecked(True)
         self.topbar.add_spacer()
         self.topbar.add_button("Help", "help.svg", self.help)
 
@@ -167,6 +171,14 @@ class MainWindow(QMainWindow):
             self.interface.disconnect()
             self.topbar.actions_call["Disconnect"].setVisible(False)
             self.topbar.actions_call["Connect"].setVisible(True)
+
+    def toggle_log(self):
+        if self.log_table.isHidden():
+            self.log_table.show()
+            self.topbar.actions_call["Log"].setChecked(True)
+        else:
+            self.log_table.hide()
+            self.topbar.actions_call["Log"].setChecked(False)
 
     def help(self, state) -> None:
         print("help", state)

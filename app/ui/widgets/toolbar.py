@@ -22,10 +22,11 @@ class ToolBar(QToolBar):
         self.theme_manager.theme_changed.connect(self.update_icons)
         self.icon_registry = {}
 
-    def add_button(self, text: str, icon: str, trigger_action, visible: bool = True) -> None:
+    def add_button(self, text: str, icon: str, trigger_action, visible: bool = True, checkable: bool = False) -> None:
         action = QAction(self.get_icon(icon), text, self)
         action.triggered.connect(trigger_action)
         action.setVisible(visible)
+        action.setCheckable(checkable)
         self.actions_call[text] = action
         self.icon_registry[text] = icon
         self.addAction(action)
