@@ -2,7 +2,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QSplitter, QTabWidget
 
 from .views.log_table_view import LogTableView
-from .views.nodes_list_view import NodesListView
+from .views.node_list_view import NodesListView
 from .views.packet_table_view import PacketTableView
 from .widgets.connect_dialog import ConnectionDialog
 from .widgets.menubar import MenuBar

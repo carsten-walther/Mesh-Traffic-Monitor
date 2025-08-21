@@ -2,15 +2,67 @@ import typing
 
 from PyQt6.QtCore import Qt, QAbstractListModel, QModelIndex
 
+from app.utils.node import Node
 
 class NodeListModel(QAbstractListModel):
     def __init__(self, *args, items=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.items = items or []
 
-    def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
+    def _data(self, index: QModelIndex, role: int = ...) -> typing.Any:
+        if not index.isValid() or index.row() >= len(self.items):
+            return None
+
+        node: Node = self.items[index.row()]
+
         if role == Qt.ItemDataRole.DisplayRole:
-            return self.items[index.row()]
+            return node.long_name
+
+        elif role == Qt.ItemDataRole.UserRole:
+            return node
+
+        elif role == Qt.ItemDataRole.ToolTipRole:
+            tooltip = f"ID: {node.node_id}\n"
+            #tooltip += f"Hardware: {node.hardware}\n"
+            tooltip += f"Last seen: {node.last_seen.strftime('%Y-%m-%d %H:%M:%S')}\n"
+
+            if node.position:
+                tooltip += f"Position: {node.position[0]:.4f}, {node.position[1]:.4f}\n"
+            if node.snr is not None:
+                tooltip += f"SNR: {node.snr} dB\n"
+            if node.rssi is not None:
+                tooltip += f"RSSI: {node.rssi} dBm\n"
+            if node.battery_level is not None:
+                tooltip += f"Battery: {node.battery_level}%\n"
+
+            return tooltip
+
+        return None
+
+    def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
+        if not index.isValid() or index.row() >= len(self.items):
+            return None
+
+        node: Node = self.items[index.row()]
+
+        if role == Qt.ItemDataRole.DisplayRole:
+            # HTML-formatierter Text für einfache mehrzeilige Darstellung
+            html = f"<b>{node.long_name}</b><br>"
+            html += f"<small>{node.short_name} • {node.hardware}</small><br>"
+
+            details = []
+            if node.battery_level is not None:
+                details.append(f"Batterie: {node.battery_level}%")
+            if node.snr is not None:
+                details.append(f"SNR: {node.snr}dB")
+            if node.rssi is not None:
+                details.append(f"RSSI: {node.rssi}dBm")
+
+            if details:
+                html += f"<small style='color: gray;'>{' • '.join(details)}</small>"
+
+            return html
+
         return None
 
     def rowCount(self, parent: QModelIndex = ...) -> int:
