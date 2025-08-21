@@ -13,11 +13,7 @@ class PacketTableView(QTableView):
         proxy.setSourceModel(model)
 
         def on_packet_received(packet: Packet):
-            model.items.append((
-                packet.rx_time, packet.from_node, packet.to_node,
-                packet.port_number, packet.rx_snr, packet.rx_rssi,
-                packet.hop_limit, packet.hop_start, packet.payload
-            ))
+            model.items.append(packet)
             model.layoutChanged.emit()
 
         parent.interface.packet_received.connect(on_packet_received)
