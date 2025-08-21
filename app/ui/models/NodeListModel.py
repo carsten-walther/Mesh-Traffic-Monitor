@@ -2,7 +2,7 @@ import typing
 
 from PyQt6.QtCore import Qt, QAbstractListModel, QModelIndex
 
-from app.utils.node import Node
+from app.utilities.NodeInfo import NodeInfo
 
 class NodeListModel(QAbstractListModel):
     def __init__(self, *args, items=None, **kwargs):
@@ -13,27 +13,27 @@ class NodeListModel(QAbstractListModel):
         if not index.isValid() or index.row() >= len(self.items):
             return None
 
-        node: Node = self.items[index.row()]
+        node: NodeInfo = self.items[index.row()]
 
         if role == Qt.ItemDataRole.DisplayRole:
-            return node.long_name
+            return node.user.longName
 
         elif role == Qt.ItemDataRole.UserRole:
             return node
 
         elif role == Qt.ItemDataRole.ToolTipRole:
-            tooltip = f"ID: {node.node_id}\n"
-            tooltip += f"Hardware: {node.hardware}\n"
-            tooltip += f"Last seen: {node.last_seen.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            tooltip = f"ID: {node.num}\n"
+            tooltip += f"Hardware: {node.user.hwModel}\n"
+            tooltip += f"Last seen: {node.lastHeard.strftime('%Y-%m-%d %H:%M:%S')}\n"
 
-            if node.position:
-                tooltip += f"Position: {node.position[0]:.4f}, {node.position[1]:.4f}\n"
+            if node.position.latitude and node.position.longitude and node.position.altitude:
+                tooltip += f"Position: {node.position.latitude:.4f}, {node.position.longitude:.4f}, {node.position.altitude}m\n"
             if node.snr is not None:
-                tooltip += f"SNR: {node.snr} dB\n"
-            if node.rssi is not None:
-                tooltip += f"RSSI: {node.rssi} dBm\n"
-            if node.battery_level is not None:
-                tooltip += f"Battery: {node.battery_level}%\n"
+                tooltip += f"SNR: {node.snr}dB\n"
+            if node.hopsAway is not None:
+                tooltip += f"Hops Away: {node.hopsAway}\n"
+            if node.deviceMetrics.batteryLevel is not None:
+                tooltip += f"Battery: {node.deviceMetrics.batteryLevel}%\n"
 
             return tooltip
 

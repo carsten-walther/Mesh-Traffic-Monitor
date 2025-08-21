@@ -9,12 +9,12 @@ import meshtastic.tcp_interface
 from PyQt6.QtCore import QThread, pyqtSignal
 from pubsub import pub
 
-from .node import Node
-from .packet import Packet
+from app.utilities.NodeInfo import NodeInfo, NodeInfoUser, NodeInfoPosition, NodeInfoDeviceMetrics
+from app.utilities.Packet import Packet, PacketDecoded
 
 
 class Interface(QThread):
-    node_discovered = pyqtSignal(Node)
+    node_discovered = pyqtSignal(NodeInfo)
     packet_received = pyqtSignal(Packet)
     connection_status = pyqtSignal(bool, str)
     log_message = pyqtSignal(str, str)
@@ -98,29 +98,42 @@ class Interface(QThread):
         except Exception as e:
             self.log_message.emit("ERROR", f"Error discovering nodes: {str(e)}")
 
-    def parse_node_info(self, node_id: str, node_data: dict) -> Optional[Node]:
+    def parse_node_info(self, node_id: str, node_data: dict) -> Optional[NodeInfo]:
         try:
-            user = node_data.get('user', {})
-            position = node_data.get('position', {})
-            device_metrics = node_data.get('deviceMetrics', {})
-
-            node_info = Node(
-                node_id=node_id,
-                short_name=user.get('shortName', f'Node-{node_id[-4:]}'),
-                long_name=user.get('longName', f'Unknown Node {node_id}'),
-                hardware=user.get('hwModel', 'Unknown'),
-                last_seen=datetime.now(timezone.utc),
-                battery_level=device_metrics.get('batteryLevel')
+            nodeInfo = NodeInfo(
+                num=node_data.get('num'),
+                user=NodeInfoUser(
+                    id=node_data.get('user', {}).get('id', 'Unknown'),
+                    longName=node_data.get('user', {}).get('longName', 'Unknown'),
+                    shortName=node_data.get('user', {}).get('shortName', 'Unknown'),
+                    macaddr=node_data.get('user', {}).get('macaddr', 'Unknown'),
+                    hwModel=node_data.get('user', {}).get('hwModel', 'Unknown'),
+                    role=node_data.get('user', {}).get('role', 'Unknown'),
+                    publicKey=node_data.get('user', {}).get('publicKey'),
+                    isUnmessagable=node_data.get('user', {}).get('isUnmessagable'),
+                ),
+                position=NodeInfoPosition(
+                    latitudeI=node_data.get('position', {}).get('latitudeI'),
+                    longitudeI=node_data.get('position', {}).get('longitudeI'),
+                    altitude=node_data.get('position', {}).get('altitude'),
+                    time=datetime.fromtimestamp(node_data.get('position', {}).get('time')),
+                    locationSource=node_data.get('position', {}).get('locationSource'),
+                    latitude=node_data.get('position', {}).get('latitude'),
+                    longitude=node_data.get('position', {}).get('longitude'),
+                ),
+                deviceMetrics=NodeInfoDeviceMetrics(
+                    batteryLevel=node_data.get('deviceMetrics', {}).get('batteryLevel'),
+                    voltage=node_data.get('deviceMetrics', {}).get('voltage'),
+                    channelUtilization=node_data.get('deviceMetrics', {}).get('channelUtilization'),
+                    airUtilTx=node_data.get('deviceMetrics', {}).get('airUtilTx'),
+                    uptimeSeconds=node_data.get('deviceMetrics', {}).get('uptimeSeconds'),
+                ),
+                snr=node_data.get('snr'),
+                lastHeard=datetime.fromtimestamp(node_data.get('lastHeard')),
+                hopsAway=node_data.get('hopsAway'),
             )
 
-            if position.get('latitude') and position.get('longitude'):
-                node_info.position = (
-                    position['latitude'],
-                    position['longitude'],
-                    position.get('altitude', 0)
-                )
-
-            return node_info
+            return nodeInfo
 
         except Exception as e:
             self.log_message.emit("ERROR", f"Error parsing node info: {str(e)}")
@@ -138,21 +151,28 @@ class Interface(QThread):
     def process_packet(self, packet: dict):
         try:
             packet_data = Packet(
-                from_node=str(packet.get('from', 'Unknown')),
-                to_node=str(packet.get('to', 'Unknown')),
-                relay_node=str(packet.get('relayNode', 'Unknown')),
-                channel=str(packet.get('channel', '')),
-                port_number=packet.get('decoded', {}).get('portnum', 'Unknown'),
-                payload_size=len(str(packet.get('decoded', {}).get('payload', ''))),
-                id=int(packet.get('id', '')),
-                rx_time=datetime.fromtimestamp(packet.get('rxTime', 0), timezone.utc) if packet.get('rxTime', None) else datetime.now(timezone.utc),
-                from_id=str(packet.get('fromId', '')),
-                to_id=str(packet.get('toId', '')),
-                rx_snr=packet.get('rxSnr'),
-                rx_rssi=packet.get('rxRssi'),
-                hop_limit=packet.get('hopLimit'),
-                hop_start=packet.get('hopStart'),
-                payload=str(packet.get('decoded', {}).get('payload', ''))
+                id=int(packet.get('id')),
+                nodeFrom=packet.get('from', 'Unknown'),
+                fromId=packet.get('fromId'),
+                nodeTo=packet.get('to', 'Unknown'),
+                toId=packet.get('toId'),
+                decoded=PacketDecoded(
+                    portnum=packet.get('decoded', {}).get('portnum', 'Unknown'),
+                    payload=packet.get('decoded', {}).get('payload'),
+                    text=packet.get('decoded', {}).get('text', ''),
+                    bitfield=packet.get('decoded', {}).get('bitfield'),
+                ),
+                rxTime=datetime.fromtimestamp(packet.get('rxTime', 0), timezone.utc) if packet.get('rxTime', None) else datetime.now(timezone.utc),
+                rxSnr=packet.get('rxSnr'),
+                rxRssi=packet.get('rxRssi'),
+                channel=packet.get('channel', ''),
+                wantAck=packet.get('wantAck'),
+                hopLimit=packet.get('hopLimit'),
+                hopStart=packet.get('hopStart'),
+                publicKey=packet.get('publicKey'),
+                pkiEncrypted=packet.get('pkiEncrypted'),
+                nextHop=packet.get('nextHop'),
+                relayNode=str(packet.get('relayNode')),
             )
 
             self.packet_received.emit(packet_data)

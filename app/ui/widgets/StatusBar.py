@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QStatusBar
 
-from app.utils.config import AppConfig
+from app.utilities.AppConfig import AppConfig
 
 
 class StatusBar(QStatusBar):

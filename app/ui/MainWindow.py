@@ -3,8 +3,8 @@ from PyQt6.QtWidgets import QMainWindow
 
 from app.ui.views import NodeListView
 from app.ui.widgets import MenuBar, ToolBar, StatusBar, ConnectDialog
-from app.utils.config import AppConfig
-from app.utils.interface import Interface
+from app.utilities.AppConfig import AppConfig
+from app.utilities.Interface import Interface
 
 
 class MainWindow(QMainWindow):
