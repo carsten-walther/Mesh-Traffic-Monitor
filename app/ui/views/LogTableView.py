@@ -3,7 +3,7 @@ from datetime import datetime
 from PyQt6.QtCore import QSortFilterProxyModel
 from PyQt6.QtWidgets import QTableView, QAbstractItemView, QHeaderView
 
-from app.ui.models.log_table_model import LogTableModel
+from app.ui.models.LogTableModel import LogTableModel
 
 
 class LogTableView(QTableView):

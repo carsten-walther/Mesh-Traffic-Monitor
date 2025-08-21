@@ -9,7 +9,7 @@ class NodeListModel(QAbstractListModel):
         super().__init__(*args, **kwargs)
         self.items = items or []
 
-    def _data(self, index: QModelIndex, role: int = ...) -> typing.Any:
+    def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
         if not index.isValid() or index.row() >= len(self.items):
             return None
 
@@ -23,7 +23,7 @@ class NodeListModel(QAbstractListModel):
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             tooltip = f"ID: {node.node_id}\n"
-            #tooltip += f"Hardware: {node.hardware}\n"
+            tooltip += f"Hardware: {node.hardware}\n"
             tooltip += f"Last seen: {node.last_seen.strftime('%Y-%m-%d %H:%M:%S')}\n"
 
             if node.position:
@@ -36,32 +36,6 @@ class NodeListModel(QAbstractListModel):
                 tooltip += f"Battery: {node.battery_level}%\n"
 
             return tooltip
-
-        return None
-
-    def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
-        if not index.isValid() or index.row() >= len(self.items):
-            return None
-
-        node: Node = self.items[index.row()]
-
-        if role == Qt.ItemDataRole.DisplayRole:
-            # HTML-formatierter Text für einfache mehrzeilige Darstellung
-            html = f"<b>{node.long_name}</b><br>"
-            html += f"<small>{node.short_name} • {node.hardware}</small><br>"
-
-            details = []
-            if node.battery_level is not None:
-                details.append(f"Batterie: {node.battery_level}%")
-            if node.snr is not None:
-                details.append(f"SNR: {node.snr}dB")
-            if node.rssi is not None:
-                details.append(f"RSSI: {node.rssi}dBm")
-
-            if details:
-                html += f"<small style='color: gray;'>{' • '.join(details)}</small>"
-
-            return html
 
         return None
 

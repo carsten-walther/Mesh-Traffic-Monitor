@@ -1,0 +1,1 @@
+from app.init import run

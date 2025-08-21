@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QComboBox, QLineEdit, 
 from meshtastic.ble_interface import BLEInterface
 
 
-class ConnectionDialog(QDialog):
+class ConnectDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 

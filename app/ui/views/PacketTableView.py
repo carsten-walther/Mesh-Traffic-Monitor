@@ -1,7 +1,7 @@
 from PyQt6.QtCore import QSortFilterProxyModel
 from PyQt6.QtWidgets import QTableView, QAbstractItemView, QHeaderView
 
-from app.ui.models.packet_table_model import PacketTableModel
+from app.ui.models.PacketTableModel import PacketTableModel
 from app.utils.packet import Packet
 
 
