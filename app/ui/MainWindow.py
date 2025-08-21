@@ -37,8 +37,9 @@ class MainWindow(QMainWindow):
 
         toolbar.add_separator()
 
-        toolbar.add_button("Log", "console.svg", self.toggle_log_view)
-        toolbar.add_button("Traffic", "list.svg", self.toggle_packet_view)
+        toolbar.add_button("Log", "log.svg", self.toggle_log_view)
+        toolbar.add_button("Packets", "packets.svg", self.toggle_packet_view)
+        toolbar.add_button("Map", "map.svg", self.toggle_help_view)
 
         toolbar.add_spacer()
 
@@ -81,4 +82,4 @@ class MainWindow(QMainWindow):
         pass
 
     def toggle_help_view(self) -> None:
-        print("help")
+        pass
