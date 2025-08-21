@@ -41,6 +41,7 @@ class ConnectionDialog(QDialog):
         form_layout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.type_label)
 
         self.type_combo = QComboBox()
+        self.type_combo.setCurrentIndex(2)
         self.type_combo.currentIndexChanged.connect(self.on_type_combo_changed)
         form_layout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.type_combo)
 
@@ -56,7 +57,7 @@ class ConnectionDialog(QDialog):
         self.host_label.hide()
         form_layout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.host_label)
 
-        self.host_line = QLineEdit()
+        self.host_line = QLineEdit("192.168.178.72")
         self.host_line.setPlaceholderText("meshtastic.local")
         self.host_line.hide()
         form_layout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.host_line)

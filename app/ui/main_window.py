@@ -1,18 +1,15 @@
-from datetime import datetime
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QSplitter, QTabWidget
 
-from PyQt6.QtCore import Qt, QSortFilterProxyModel
-from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, QVBoxLayout, \
-    QSplitter, QListWidget, QTabWidget, QLabel
-
-from .models.log_table_model import LogTableModel
-from .models.packet_table_model import PacketTableModel
+from .views.log_table_view import LogTableView
+from .views.nodes_list_view import NodesListView
+from .views.packet_table_view import PacketTableView
 from .widgets.connect_dialog import ConnectionDialog
 from .widgets.menubar import MenuBar
 from .widgets.toolbar import ToolBar
 from .widgets.statusbar import StatusBar
 from ..utils.config import AppConfig
 from ..utils.interface import Interface
-from ..utils.packet import Packet
 
 
 class MainWindow(QMainWindow):
@@ -20,16 +17,10 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.interface = Interface()
-        self.interface.packet_received.connect(self.on_packet_received)
-        self.interface.log_message.connect(self.on_log_message)
-
-        self.packet_table_model = PacketTableModel()
-        self.packet_table_model_proxy = QSortFilterProxyModel()
-
-        self.log_table_model = LogTableModel()
-        self.log_table_model_proxy = QSortFilterProxyModel()
 
         self.topbar = None
+        self.packet_table_view = None
+        self.log_table_view = None
 
         self.init_ui()
 
@@ -41,6 +32,9 @@ class MainWindow(QMainWindow):
         self.create_toolbars()
         self.setMenuBar(MenuBar(self))
         self.setStatusBar(StatusBar(self))
+
+        self.packet_table_view = PacketTableView(self)
+        self.log_table_view = LogTableView(self)
 
         # Zentrales Widget
         central_widget = QWidget()
@@ -54,7 +48,7 @@ class MainWindow(QMainWindow):
         #splitter.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(splitter)
 
-        list_widget = QListWidget()
+        list_widget = NodesListView(self)
         list_widget.setMinimumWidth(200)
         list_widget.setMaximumWidth(400)
         splitter.addWidget(list_widget)
@@ -74,13 +68,11 @@ class MainWindow(QMainWindow):
         # Tab 1: Übersicht
         tab1 = QWidget(tab_widget)
         tab1_layout = QVBoxLayout(tab1)
-        #tab1_layout.setContentsMargins(0, 0, 0, 0)
-        tab1_layout.addWidget(self.create_packet_table())
+        tab1_layout.addWidget(self.packet_table_view)
         tab_widget.addTab(tab1, "Packets")
 
         vertical_splitter.addWidget(tab_widget)
-        self.log_table = self.create_log_table()
-        vertical_splitter.addWidget(self.log_table)
+        vertical_splitter.addWidget(self.log_table_view)
 
         splitter.addWidget(right_widget)
         splitter.adjustSize()
@@ -106,52 +98,6 @@ class MainWindow(QMainWindow):
 
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.topbar)
 
-    def create_packet_table(self):
-        self.packet_table_model_proxy.setSourceModel(self.packet_table_model)
-
-        table = QTableView()
-        table.setModel(self.packet_table_model_proxy)
-        table.setSortingEnabled(True)
-        table.setWordWrap(True)
-        table.verticalHeader().setVisible(False)
-        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-        header = table.horizontalHeader()
-        for i in range(0, header.count()):
-            header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
-        header.setStretchLastSection(True)
-
-        # TableView properties
-        table.setAlternatingRowColors(True)
-        table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        table.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-
-        return table
-
-    def create_log_table(self):
-        self.log_table_model_proxy.setSourceModel(self.log_table_model)
-
-        table = QTableView()
-        table.setMinimumHeight(100)
-        table.setMaximumHeight(150)
-        table.setModel(self.log_table_model_proxy)
-        table.setSortingEnabled(True)
-        table.setWordWrap(True)
-        table.verticalHeader().setVisible(False)
-        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-        header = table.horizontalHeader()
-        for i in range(0, header.count()):
-            header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
-        header.setStretchLastSection(True)
-
-        # TableView properties
-        table.setAlternatingRowColors(True)
-        table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        table.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-
-        return table
-
     def connect(self) -> None:
         if not self.interface.running:
             dlg = ConnectionDialog(self)
@@ -173,24 +119,12 @@ class MainWindow(QMainWindow):
             self.topbar.actions_call["Connect"].setVisible(True)
 
     def toggle_log(self):
-        if self.log_table.isHidden():
-            self.log_table.show()
+        if self.log_table_view.isHidden():
+            self.log_table_view.show()
             self.topbar.actions_call["Log"].setChecked(True)
         else:
-            self.log_table.hide()
+            self.log_table_view.hide()
             self.topbar.actions_call["Log"].setChecked(False)
 
     def help(self, state) -> None:
         print("help", state)
-
-    def on_packet_received(self, packet: Packet):
-        self.packet_table_model.items.append((
-            packet.rx_time, packet.from_node, packet.to_node, packet.port_number,
-            packet.rx_snr, packet.rx_rssi, packet.hop_limit, packet.hop_start,
-            packet.payload
-        ))
-        self.packet_table_model.layoutChanged.emit()
-
-    def on_log_message(self, level: str, message: str):
-        self.log_table_model.items.append((datetime.now(), level, message))
-        self.log_table_model.layoutChanged.emit()
