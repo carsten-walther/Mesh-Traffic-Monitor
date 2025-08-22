@@ -1,13 +1,15 @@
 import io
 import folium
 
-from PyQt6.QtGui import QAction
-from PyQt6.QtCore import Qt, QSettings, QByteArray
+from PyQt6.QtGui import QAction, QColor
+from PyQt6.QtCore import Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QMenu, QWidget, QVBoxLayout
+from folium.plugins import MarkerCluster, HeatMap
 
-from app.utilities.AppConfig import AppConfig
+from app.utilities.Interface import Interface
 from app.utilities.NodeInfo import NodeInfo
+from app.utilities.SettingsManager import SettingsManager
 
 
 class MapWindow(QWidget):
@@ -15,12 +17,10 @@ class MapWindow(QWidget):
         super().__init__()
         self.interface = interface
 
-        self.settings = QSettings(AppConfig().load()['app']['name'], "Map")
-        self.readSettings()
-
         self.webView = None
         self.highlighted_node = None
 
+        self.readSettings()
         self.initUi()
 
         self.nodes = {}
@@ -32,23 +32,21 @@ class MapWindow(QWidget):
         self.setMinimumSize(800, 300)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
 
         self.webView = QWebEngineView()
         layout.addWidget(self.webView)
 
         self.setLayout(layout)
 
-        # Kontext-Menü für MapWindow aktivieren
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_map_context_menu)
 
-    def writeSettings(self) -> None:
-        self.settings.setValue("geometry", self.saveGeometry())
+    def writeSettings(self):
+        SettingsManager().save_window_state("Map", self.saveGeometry())
 
-    def readSettings(self) -> None:
-        self.restoreGeometry(self.settings.value("geometry", QByteArray()))
+    def readSettings(self):
+        geometry, windowState = SettingsManager().read_window_state("Map")
+        self.restoreGeometry(geometry)
 
     def closeEvent(self, event) -> None:
         self.writeSettings()
@@ -117,11 +115,18 @@ class MapWindow(QWidget):
             center_lon = self.highlighted_node.position.longitude
             zoom_level = 15  # Näher heranzoomen für hervorgehobenen Node
 
-        m = folium.Map(
+        map = folium.Map(
             location=[center_lat, center_lon],
             zoom_start=zoom_level,
-            tiles='OpenStreetMap.Mapnik'
+            tiles="OpenStreetMap"
         )
+
+        data = []
+
+        marker_cluster = MarkerCluster().add_to(map, "Clusterer")
+        #HeatMap(data).add_to(map, "Heatmap")
+        #folium.TileLayer("OpenStreetMap", overlay=True).add_to(map)
+        #folium.LayerControl().add_to(map)
 
         for node in self.nodes.values():
             if (node.position and
@@ -129,12 +134,14 @@ class MapWindow(QWidget):
                     node.position.latitude != 0 and node.position.longitude != 0):
 
                 # Prüfen ob dies der hervorgehobene Node ist
-                is_highlighted = (self.highlighted_node and
-                                  node.user.id == self.highlighted_node.user.id)
+                is_highlighted = (self.highlighted_node and node.user.id == self.highlighted_node.user.id)
 
-                color = self.get_node_color(node)
-                radius = 12 if is_highlighted else 8  # Größerer Radius für hervorgehobenen Node
-                weight = 4 if is_highlighted else 2  # Dickerer Rand für hervorgehobenen Node
+                hue, saturation, value = Interface().get_node_color(node.user.shortName)
+                color = QColor()
+                color.setHsv(hue, saturation, value)
+
+                radius = 20 if is_highlighted else 15  # Größerer Radius für hervorgehobenen Node
+                weight = 5 if is_highlighted else 3  # Dickerer Rand für hervorgehobenen Node
 
                 popup_html = f"""
                 <div>
@@ -151,19 +158,17 @@ class MapWindow(QWidget):
                 </div>
                 """
 
-                marker = folium.CircleMarker(
+                folium.CircleMarker(
                     location=[node.position.latitude, node.position.longitude],
                     radius=radius,
-                    popup=folium.Popup(popup_html, max_width=350),
-                    color='red' if is_highlighted else color,  # Rote Farbe für hervorgehobenen Node
+                    popup=folium.Popup(popup_html),
+                    color=color.name(),
                     fill=True,
-                    fillColor='red' if is_highlighted else color,
+                    fillColor=color.name(),
                     fillOpacity=0.9 if is_highlighted else 0.7,  # Stärkere Deckkraft
                     weight=weight,
                     tooltip=f"{'🎯 ' if is_highlighted else ''}{node.user.longName} ({node.user.shortName})"
-                )
-
-                marker.add_to(m)
+                ).add_to(marker_cluster)
 
                 # Für hervorgehobenen Node zusätzlich einen Pulsing-Effekt hinzufügen
                 if is_highlighted:
@@ -175,10 +180,10 @@ class MapWindow(QWidget):
                         fill=False,
                         weight=1,
                         opacity=0.5
-                    ).add_to(m)
+                    ).add_to(marker_cluster)
 
         data = io.BytesIO()
-        m.save(data, close_file=False)
+        map.save(data, close_file=False)
         self.webView.setHtml(data.getvalue().decode())
 
     def get_node_color(self, node: NodeInfo) -> str:

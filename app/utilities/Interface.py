@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Tuple
 
 import meshtastic
 import meshtastic.ble_interface
@@ -49,16 +49,16 @@ class Interface(QThread):
     def run(self):
         try:
             self.running = True
-            self.log_message.emit("INFO", f"Connecting via {self.type} on {self.port}{self.host}{self.addr}")
 
             if self.type == 'serial':
                 self.interface = meshtastic.serial_interface.SerialInterface(self.port)
+                self.log_message.emit("INFO", f"Connecting via {self.type} on {self.port}")
             elif self.type == 'tcp':
                 self.interface = meshtastic.tcp_interface.TCPInterface(self.host)
+                self.log_message.emit("INFO", f"Connecting via {self.type} on {self.host}")
             elif self.type == 'ble':
                 self.interface = meshtastic.ble_interface.BLEInterface(self.addr)
-
-            self.connection_status.emit(True, f"Connected")
+                self.log_message.emit("INFO", f"Connecting via {self.type} on {self.addr}")
 
             def on_connection_established(interface, topic=pub.AUTO_TOPIC):
                 self.connection_established()
@@ -203,3 +203,15 @@ class Interface(QThread):
         except Exception as e:
             self.log_message.emit("ERROR", f"Error processing packet: {str(e)}")
             logging.error(f"Error processing packet: {str(e)}")
+
+    @staticmethod
+    def get_node_color(node_id: str) -> Tuple[int, int, int]:
+        import hashlib
+        color_hash = hashlib.md5(node_id.encode()).hexdigest()
+
+        # HSV-Farbmodell für gleichmäßigere Farben verwenden
+        hue = int(color_hash[0:2], 16) * 360 // 256  # Farbton 0-360
+        saturation = 180 + (int(color_hash[2:4], 16) % 75)  # Sättigung 180-255
+        value = 180 + (int(color_hash[4:6], 16) % 75)  # Helligkeit 180-255
+
+        return hue, saturation, value

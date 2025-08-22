@@ -1,6 +1,8 @@
 from PyQt6.QtCore import Qt, QRect, QModelIndex, QSize
 from PyQt6.QtGui import QPainter, QFont, QColor
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem
+
+from app.utilities.Interface import Interface
 from app.utilities.NodeInfo import NodeInfo
 
 
@@ -32,10 +34,12 @@ class NodeStyledItemDelegate(QStyledItemDelegate):
         circle_rect = QRect(circle_x, circle_y, circle_size, circle_size)
 
         # Farbe basierend auf node_id generieren (konsistent für gleiche Node)
-        circle_color = self.get_node_color(node.user.shortName)
+        hue, saturation, value = Interface().get_node_color(node.user.shortName)
+        color = QColor()
+        color.setHsv(hue, saturation, value)
 
         # Kreis zeichnen
-        painter.setBrush(circle_color)
+        painter.setBrush(color)
         painter.setPen(Qt.PenStyle.NoPen)  # Kein Rand
         painter.drawEllipse(circle_rect)
 
@@ -125,18 +129,3 @@ class NodeStyledItemDelegate(QStyledItemDelegate):
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex):
         return QSize(-1, 65)
-
-    # Bessere Farbverteilung (hellere, freundlichere Farben)
-    def get_node_color(self, node_id: str) -> QColor:
-        import hashlib
-        color_hash = hashlib.md5(node_id.encode()).hexdigest()
-
-        # HSV-Farbmodell für gleichmäßigere Farben verwenden
-        hue = int(color_hash[0:2], 16) * 360 // 256  # Farbton 0-360
-        saturation = 180 + (int(color_hash[2:4], 16) % 75)  # Sättigung 180-255
-        value = 180 + (int(color_hash[4:6], 16) % 75)  # Helligkeit 180-255
-
-        color = QColor()
-        color.setHsv(hue, saturation, value)
-
-        return color

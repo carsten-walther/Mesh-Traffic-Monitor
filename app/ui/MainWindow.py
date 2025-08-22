@@ -1,4 +1,5 @@
 from PyQt6.QtCore import Qt, QSize, QSettings, QByteArray
+from PyQt6.QtGui import QShortcut, QKeySequence
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 
 from app.ui.LogWindow import LogWindow
@@ -8,6 +9,7 @@ from app.ui.views import NodeListView
 from app.ui.widgets import MenuBar, ToolBar, StatusBar, ConnectDialog
 from app.utilities.AppConfig import AppConfig
 from app.utilities.Interface import Interface
+from app.utilities.SettingsManager import SettingsManager
 
 
 class MainWindow(QMainWindow):
@@ -19,12 +21,11 @@ class MainWindow(QMainWindow):
         self.mapWindow = MapWindow(interface=self.interface)
         self.logWindow = LogWindow(interface=self.interface)
 
-        self.settings = QSettings(AppConfig().load()['app']['name'], "Main")
-        self.readSettings()
-
         self.toolbar = None
 
         self.initUi()
+        self.settings = SettingsManager().settings
+        self.readSettings()
         self.restoreWindowStates()
 
     def initUi(self) -> None:
@@ -34,12 +35,13 @@ class MainWindow(QMainWindow):
         self.createToolBar()
         self.createMenuBar()
         self.createStatusBar()
+        self.setup_shortcuts()
 
         widget = QWidget()
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(0)
 
         nodeList = NodeListView(self)
         layout.addWidget(nodeList)
@@ -48,16 +50,16 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
 
     def writeSettings(self):
-        self.settings.setValue("geometry", self.saveGeometry())
-        self.settings.setValue("windowState", self.saveState())
+        SettingsManager().save_window_state("Main", self.saveGeometry(), self.saveState())
 
         self.settings.setValue("logWindowVisible", self.logWindow.isVisible())
         self.settings.setValue("packetWindowVisible", self.packetWindow.isVisible())
         self.settings.setValue("mapWindowVisible", self.mapWindow.isVisible())
 
     def readSettings(self):
-        self.restoreGeometry(self.settings.value("geometry", QByteArray()))
-        self.restoreState(self.settings.value("windowState", QByteArray()))
+        geometry, windowState = SettingsManager().read_window_state("Main")
+        self.restoreGeometry(geometry)
+        self.restoreState(windowState)
 
     def restoreWindowStates(self):
         if self.settings.value("logWindowVisible", False, type=bool):
@@ -82,10 +84,6 @@ class MainWindow(QMainWindow):
 
     def createToolBar(self) -> None:
         self.toolbar = ToolBar(self)
-        self.toolbar.setMovable(False)
-        self.toolbar.setIconSize(QSize(24, 24))
-        self.toolbar.setOrientation(Qt.Orientation.Horizontal)
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
         self.toolbar.add_button("Connect", "connect.svg", self.connect)
         # self.toolbar.add_button("Disconnect", "disconnect.svg", self.disconnect)
@@ -103,6 +101,11 @@ class MainWindow(QMainWindow):
 
     def createStatusBar(self) -> None:
         self.setStatusBar(StatusBar(self))
+
+    def setup_shortcuts(self):
+        QShortcut(QKeySequence("Ctrl+L"), self, self.toggleLogWindow)
+        QShortcut(QKeySequence("Ctrl+M"), self, self.toggleMapWindow)
+        QShortcut(QKeySequence("Ctrl+P"), self, self.togglePacketWindow)
 
     def connect(self) -> None:
         if not self.interface.running:

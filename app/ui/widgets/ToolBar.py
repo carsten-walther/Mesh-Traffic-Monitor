@@ -1,5 +1,6 @@
 import os
 
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QToolBar, QWidget, QSizePolicy
 
@@ -20,14 +21,19 @@ class ToolBar(QToolBar):
         action.triggered.connect(trigger_action)
         action.setVisible(visible)
         action.setCheckable(checkable)
+
+        self.setMovable(False)
+        self.setIconSize(QSize(24, 24))
+        self.setOrientation(Qt.Orientation.Horizontal)
+        # self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+
         self.actions_call[text] = action
         self.icon_registry[text] = icon
         self.addAction(action)
 
     def add_separator(self) -> None:
-        separator = QWidget(self)
-        separator.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        self.addWidget(separator)
+        self.addSeparator()
 
     def add_spacer(self) -> None:
         separator = QWidget(self)

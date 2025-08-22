@@ -1,18 +1,14 @@
-from PyQt6.QtCore import QSettings, QByteArray
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout
 
 from app.ui.views.PacketTableView import PacketTableView
-from app.utilities.AppConfig import AppConfig
+from app.utilities.SettingsManager import SettingsManager
 
 
 class PacketWindow(QWidget):
     def __init__(self, interface) -> None:
         super().__init__()
         self.interface = interface
-
-        self.settings = QSettings(AppConfig().load()['app']['name'], "Packet")
         self.readSettings()
-
         self.initUi()
 
     def initUi(self) -> None:
@@ -20,17 +16,16 @@ class PacketWindow(QWidget):
         self.setMinimumSize(800, 300)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
 
         layout.addWidget(PacketTableView(self))
         self.setLayout(layout)
 
     def writeSettings(self):
-        self.settings.setValue("geometry", self.saveGeometry())
+        SettingsManager().save_window_state("Packet", self.saveGeometry())
 
     def readSettings(self):
-        self.restoreGeometry(self.settings.value("geometry", QByteArray()))
+        geometry, windowState = SettingsManager().read_window_state("Packet")
+        self.restoreGeometry(geometry)
 
     def closeEvent(self, event):
         self.writeSettings()

@@ -28,11 +28,9 @@ class ConnectDialog(QDialog):
         self.move(qr.topLeft())
 
     def init_ui(self):
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        button_box.accepted.connect(self.accept)
-        button_box.rejected.connect(self.reject)
-
         layout = QVBoxLayout()
+
+        info_text = QLabel("Please select connection type for your node.")
 
         form_widget = QWidget()
         form_layout = QFormLayout(form_widget)
@@ -74,12 +72,17 @@ class ConnectDialog(QDialog):
         form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
         form_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
 
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+
+        layout.addWidget(info_text)
         layout.addWidget(form_widget)
         layout.addWidget(button_box)
         self.setLayout(layout)
 
         self.setWindowTitle("Connect")
-        self.resize(300, 200)
+        # self.resize(300, 200)
         self.setModal(True)
         self.center()
         self.show()
@@ -130,6 +133,6 @@ class ConnectDialog(QDialog):
         self.addr_combo.clear()
         self.addr_combo.addItem("")
         for device in BLEInterface.scan():
-            self.addr_combo.addItem(f"{device}")
+            self.addr_combo.addItem(f"{device.address}")
         if self.addr_combo.count() == 0:
             self.addr_combo.addItem("No devices found")
