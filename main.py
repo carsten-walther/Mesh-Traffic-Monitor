@@ -1,3 +1,5 @@
+"""Main module to run application"""
+
 import logging
 import sys
 
