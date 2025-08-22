@@ -5,8 +5,11 @@ class MenuBar(QMenuBar):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         file_menu = self.addMenu("&File")
-        edit_menu = self.addMenu("&Edit")
-        view_menu = self.addMenu("&View")
-        help_menu = self.addMenu("&Help")
+        file_menu.addAction(self.parent().toolbar.actions_call["Connect"]) # type: ignore
 
-        # help_menu.addAction(self.parent().topbar.actions_call["Help"])
+        edit_menu = self.addMenu("&Edit")
+
+        view_menu = self.addMenu("&View")
+        view_menu.addAction(self.parent().toolbar.actions_call["Log"]) # type: ignore
+        view_menu.addAction(self.parent().toolbar.actions_call["Packets"]) # type: ignore
+        view_menu.addAction(self.parent().toolbar.actions_call["Map"]) # type: ignore

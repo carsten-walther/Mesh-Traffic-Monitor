@@ -41,5 +41,5 @@ class NodeInfo:
     position: NodeInfoPosition
     deviceMetrics: NodeInfoDeviceMetrics
     snr: Optional[float] = None
-    lastHeard: Optional[datetime] = None
+    lastHeard: Optional[datetime] = datetime.now()
     hopsAway: Optional[int] = None

@@ -23,7 +23,7 @@ class LogTableModel(QAbstractTableModel):
         return len(self.items)
 
     def columnCount(self, parent: QModelIndex = ...) -> int:
-        return len(self.items[0]) if self.items else len(self.headers)
+        return len(self.headers)
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> typing.Any:
         if role == Qt.ItemDataRole.DisplayRole:

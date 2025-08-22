@@ -29,8 +29,9 @@ class PacketTableView(QTableView):
         table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
 
         header = table_view.horizontalHeader()
-        for i in range(0, header.count()):
-            header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
         header.setStretchLastSection(True)
+
+        for i in range(header.count() - 1):
+            header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
 
         return table_view

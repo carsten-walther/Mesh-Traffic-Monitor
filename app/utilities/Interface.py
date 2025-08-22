@@ -1,3 +1,4 @@
+import logging
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -86,6 +87,7 @@ class Interface(QThread):
 
         except Exception as e:
             self.log_message.emit("ERROR", f"Connection error: {str(e)}")
+            logging.error(f"Connection error: {str(e)}")
             self.connection_status.emit(False, str(e))
 
     def discover_nodes(self):
@@ -97,18 +99,25 @@ class Interface(QThread):
                         self.node_discovered.emit(node_info)
         except Exception as e:
             self.log_message.emit("ERROR", f"Error discovering nodes: {str(e)}")
+            logging.error(f"Error discovering nodes: {str(e)}")
 
     def parse_node_info(self, node_id: str, node_data: dict) -> Optional[NodeInfo]:
         try:
+            # Sichere Zeitstempel-Konvertierung mit Fallback
+            def safe_timestamp(timestamp):
+                if timestamp and timestamp != 0:
+                    return datetime.fromtimestamp(timestamp)
+                return None
+
             nodeInfo = NodeInfo(
-                num=node_data.get('num'),
+                num=int(node_data.get('num', 0)),
                 user=NodeInfoUser(
                     id=node_data.get('user', {}).get('id', 'Unknown'),
                     longName=node_data.get('user', {}).get('longName', 'Unknown'),
                     shortName=node_data.get('user', {}).get('shortName', 'Unknown'),
-                    macaddr=node_data.get('user', {}).get('macaddr', 'Unknown'),
-                    hwModel=node_data.get('user', {}).get('hwModel', 'Unknown'),
-                    role=node_data.get('user', {}).get('role', 'Unknown'),
+                    macaddr=node_data.get('user', {}).get('macaddr'),
+                    hwModel=node_data.get('user', {}).get('hwModel'),
+                    role=node_data.get('user', {}).get('role'),
                     publicKey=node_data.get('user', {}).get('publicKey'),
                     isUnmessagable=node_data.get('user', {}).get('isUnmessagable'),
                 ),
@@ -116,7 +125,7 @@ class Interface(QThread):
                     latitudeI=node_data.get('position', {}).get('latitudeI'),
                     longitudeI=node_data.get('position', {}).get('longitudeI'),
                     altitude=node_data.get('position', {}).get('altitude'),
-                    time=datetime.fromtimestamp(node_data.get('position', {}).get('time')),
+                    time=safe_timestamp(node_data.get('position', {}).get('time')),
                     locationSource=node_data.get('position', {}).get('locationSource'),
                     latitude=node_data.get('position', {}).get('latitude'),
                     longitude=node_data.get('position', {}).get('longitude'),
@@ -129,7 +138,7 @@ class Interface(QThread):
                     uptimeSeconds=node_data.get('deviceMetrics', {}).get('uptimeSeconds'),
                 ),
                 snr=node_data.get('snr'),
-                lastHeard=datetime.fromtimestamp(node_data.get('lastHeard')),
+                lastHeard=safe_timestamp(node_data.get('lastHeard')),
                 hopsAway=node_data.get('hopsAway'),
             )
 
@@ -137,6 +146,7 @@ class Interface(QThread):
 
         except Exception as e:
             self.log_message.emit("ERROR", f"Error parsing node info: {str(e)}")
+            logging.error(f"Error parsing node info: {str(e)}")
             return None
 
     def connection_established(self):
@@ -150,32 +160,46 @@ class Interface(QThread):
 
     def process_packet(self, packet: dict):
         try:
-            packet_data = Packet(
-                id=int(packet.get('id')),
+            # Sichere Konvertierung für optionale Integer-Werte
+            def safe_int(value):
+                if value is not None:
+                    return int(value)
+                return None
+
+            # Sichere Zeitstempel-Konvertierung
+            rx_time = packet.get('rxTime')
+            if rx_time and rx_time != 0:
+                rx_time_dt = datetime.fromtimestamp(rx_time, timezone.utc)
+            else:
+                rx_time_dt = datetime.now(timezone.utc)
+
+            packetData = Packet(
+                id=int(packet.get('id', 0)),
                 nodeFrom=packet.get('from', 'Unknown'),
-                fromId=packet.get('fromId'),
+                fromId=packet.get('fromId', 'Unknown'),
                 nodeTo=packet.get('to', 'Unknown'),
-                toId=packet.get('toId'),
+                toId=packet.get('toId', 'Unknown'),
                 decoded=PacketDecoded(
                     portnum=packet.get('decoded', {}).get('portnum', 'Unknown'),
-                    payload=packet.get('decoded', {}).get('payload'),
+                    payload=packet.get('decoded', {}).get('payload', ''),
                     text=packet.get('decoded', {}).get('text', ''),
-                    bitfield=packet.get('decoded', {}).get('bitfield'),
+                    bitfield=safe_int(packet.get('decoded', {}).get('bitfield')),
                 ),
-                rxTime=datetime.fromtimestamp(packet.get('rxTime', 0), timezone.utc) if packet.get('rxTime', None) else datetime.now(timezone.utc),
-                rxSnr=packet.get('rxSnr'),
-                rxRssi=packet.get('rxRssi'),
-                channel=packet.get('channel', ''),
+                rxTime=rx_time_dt,
+                rxSnr=float(packet.get('rxSnr', 0.0)),
+                rxRssi=int(packet.get('rxRssi', 0)),
+                channel=packet.get('channel'),
                 wantAck=packet.get('wantAck'),
-                hopLimit=packet.get('hopLimit'),
-                hopStart=packet.get('hopStart'),
+                hopLimit=safe_int(packet.get('hopLimit')),
+                hopStart=safe_int(packet.get('hopStart')),
                 publicKey=packet.get('publicKey'),
                 pkiEncrypted=packet.get('pkiEncrypted'),
                 nextHop=packet.get('nextHop'),
-                relayNode=str(packet.get('relayNode')),
+                relayNode=packet.get('relayNode'),
             )
 
-            self.packet_received.emit(packet_data)
+            self.packet_received.emit(packetData)
 
         except Exception as e:
             self.log_message.emit("ERROR", f"Error processing packet: {str(e)}")
+            logging.error(f"Error processing packet: {str(e)}")

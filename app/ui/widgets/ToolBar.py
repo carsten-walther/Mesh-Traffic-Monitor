@@ -9,6 +9,7 @@ from app.ui.ThemeManager import ThemeManager
 class ToolBar(QToolBar):
     def __init__(self, parent) -> None:
         super().__init__(parent)
+        self.setObjectName("Toolbar")
         self.actions_call = {}
         self.theme_manager = ThemeManager(self)
         self.theme_manager.theme_changed.connect(self.update_icons)
