@@ -17,7 +17,7 @@ class PacketWindow(QWidget):
 
     def initUi(self) -> None:
         self.setWindowTitle(f"{AppConfig().load()['app']['name']} - Packet")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(800, 300)
 
         layout = QHBoxLayout()
         layout.addWidget(PacketTableView(self))
