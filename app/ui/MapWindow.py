@@ -1,9 +1,10 @@
 import io
 import folium
 
-from PyQt6.QtCore import QSettings, QByteArray, QUrl
+from PyQt6.QtGui import QAction
+from PyQt6.QtCore import Qt, QSettings, QByteArray
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QMenu, QWidget, QVBoxLayout
 
 from app.utilities.AppConfig import AppConfig
 from app.utilities.NodeInfo import NodeInfo
@@ -18,6 +19,7 @@ class MapWindow(QWidget):
         self.readSettings()
 
         self.webView = None
+        self.highlighted_node = None
 
         self.initUi()
 
@@ -38,6 +40,10 @@ class MapWindow(QWidget):
 
         self.setLayout(layout)
 
+        # Kontext-Menü für MapWindow aktivieren
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_map_context_menu)
+
     def writeSettings(self) -> None:
         self.settings.setValue("geometry", self.saveGeometry())
 
@@ -53,10 +59,41 @@ class MapWindow(QWidget):
         self.nodes[node_info.user.id] = node_info
         self.update_map()
 
+    def highlight_node(self, node: NodeInfo):
+        """Hebt einen bestimmten Node auf der Karte hervor"""
+        self.highlighted_node = node
+        self.update_map()
+
+        # Fenster in den Vordergrund bringen
+        self.raise_()
+        self.activateWindow()
+
+    def clear_highlight(self):
+        """Entfernt die Hervorhebung von allen Nodes"""
+        self.highlighted_node = None
+        self.update_map()
+
+    def show_map_context_menu(self, position):
+        """Zeigt Kontext-Menü für die Karte an"""
+
+        if not self.highlighted_node:
+            return  # Kein Menü anzeigen wenn kein Node hervorgehoben ist
+
+        menu = QMenu(self)
+
+        clear_action = QAction("Clear Highlight", menu)
+        clear_action.triggered.connect(self.clear_highlight)
+        menu.addAction(clear_action)
+
+        # Menü an der Cursor-Position anzeigen
+        global_pos = self.mapToGlobal(position)
+        menu.exec(global_pos)
+
     def update_map(self):
         """Aktualisiert die Karte mit allen bekannten Nodes"""
         # Standard-Standort (Deutschland Mitte) falls keine Nodes vorhanden
         center_lat, center_lon = 51.1657, 10.4515
+        zoom_level = 10
 
         # Wenn Nodes vorhanden sind, Zentrum basierend auf Nodes berechnen
         if self.nodes:
@@ -71,9 +108,18 @@ class MapWindow(QWidget):
                 center_lat = sum(pos[0] for pos in valid_positions) / len(valid_positions)
                 center_lon = sum(pos[1] for pos in valid_positions) / len(valid_positions)
 
+        # Wenn ein Node hervorgehoben werden soll, auf diesen zentrieren
+        if (self.highlighted_node and
+                self.highlighted_node.position and
+                self.highlighted_node.position.latitude and
+                self.highlighted_node.position.longitude):
+            center_lat = self.highlighted_node.position.latitude
+            center_lon = self.highlighted_node.position.longitude
+            zoom_level = 15  # Näher heranzoomen für hervorgehobenen Node
+
         m = folium.Map(
             location=[center_lat, center_lon],
-            zoom_start=10,
+            zoom_start=zoom_level,
             tiles='OpenStreetMap.Mapnik'
         )
 
@@ -81,11 +127,18 @@ class MapWindow(QWidget):
             if (node.position and
                     node.position.latitude and node.position.longitude and
                     node.position.latitude != 0 and node.position.longitude != 0):
+
+                # Prüfen ob dies der hervorgehobene Node ist
+                is_highlighted = (self.highlighted_node and
+                                  node.user.id == self.highlighted_node.user.id)
+
                 color = self.get_node_color(node)
+                radius = 12 if is_highlighted else 8  # Größerer Radius für hervorgehobenen Node
+                weight = 4 if is_highlighted else 2  # Dickerer Rand für hervorgehobenen Node
 
                 popup_html = f"""
                 <div>
-                    <h4>{node.user.longName}</h4>
+                    <h4>{node.user.longName}{'<br><span style="color: red;">📍 HIGHLIGHTED</span>' if is_highlighted else ''}</h4>
                     <p>
                         <b>ID:</b> {node.user.id}<br>
                         <b>Short Name:</b> {node.user.shortName}<br>
@@ -98,17 +151,31 @@ class MapWindow(QWidget):
                 </div>
                 """
 
-                folium.CircleMarker(
+                marker = folium.CircleMarker(
                     location=[node.position.latitude, node.position.longitude],
-                    radius=8,
+                    radius=radius,
                     popup=folium.Popup(popup_html, max_width=350),
-                    color=color,
+                    color='red' if is_highlighted else color,  # Rote Farbe für hervorgehobenen Node
                     fill=True,
-                    fillColor=color,
-                    fillOpacity=0.7,
-                    weight=2,
-                    tooltip=f"{node.user.longName} ({node.user.shortName})"
-                ).add_to(m)
+                    fillColor='red' if is_highlighted else color,
+                    fillOpacity=0.9 if is_highlighted else 0.7,  # Stärkere Deckkraft
+                    weight=weight,
+                    tooltip=f"{'🎯 ' if is_highlighted else ''}{node.user.longName} ({node.user.shortName})"
+                )
+
+                marker.add_to(m)
+
+                # Für hervorgehobenen Node zusätzlich einen Pulsing-Effekt hinzufügen
+                if is_highlighted:
+                    # Äußerer Kreis für Pulsing-Effekt
+                    folium.CircleMarker(
+                        location=[node.position.latitude, node.position.longitude],
+                        radius=20,
+                        color='red',
+                        fill=False,
+                        weight=1,
+                        opacity=0.5
+                    ).add_to(m)
 
         data = io.BytesIO()
         m.save(data, close_file=False)
