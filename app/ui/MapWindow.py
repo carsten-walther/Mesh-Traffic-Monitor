@@ -1,5 +1,4 @@
 import io
-import os
 import folium
 
 from PyQt6.QtCore import QSettings, QByteArray, QUrl
@@ -18,7 +17,7 @@ class MapWindow(QWidget):
         self.settings = QSettings(AppConfig().load()['app']['name'], "Map")
         self.readSettings()
 
-        self.web_view = None
+        self.webView = None
 
         self.initUi()
 
@@ -27,13 +26,15 @@ class MapWindow(QWidget):
         self.update_map()
 
     def initUi(self) -> None:
-        self.setWindowTitle(f"{AppConfig().load()['app']['name']} - Map")
+        self.setWindowTitle("Map")
         self.setMinimumSize(800, 300)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
-        self.web_view = QWebEngineView()
-        layout.addWidget(self.web_view)
+        self.webView = QWebEngineView()
+        layout.addWidget(self.webView)
 
         self.setLayout(layout)
 
@@ -70,10 +71,9 @@ class MapWindow(QWidget):
                 center_lat = sum(pos[0] for pos in valid_positions) / len(valid_positions)
                 center_lon = sum(pos[1] for pos in valid_positions) / len(valid_positions)
 
-        # Folium Karte erstellen
         m = folium.Map(
             location=[center_lat, center_lon],
-            zoom_start=8,
+            zoom_start=10,
             tiles='OpenStreetMap.Mapnik'
         )
 
@@ -112,7 +112,7 @@ class MapWindow(QWidget):
 
         data = io.BytesIO()
         m.save(data, close_file=False)
-        self.web_view.setHtml(data.getvalue().decode())
+        self.webView.setHtml(data.getvalue().decode())
 
     def get_node_color(self, node: NodeInfo) -> str:
         from datetime import datetime, timedelta

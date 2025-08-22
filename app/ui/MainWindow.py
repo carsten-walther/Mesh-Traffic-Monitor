@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt, QSize, QSettings, QByteArray
-from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 
 from app.ui.LogWindow import LogWindow
 from app.ui.MapWindow import MapWindow
@@ -28,14 +28,24 @@ class MainWindow(QMainWindow):
         self.restoreWindowStates()
 
     def initUi(self) -> None:
-        self.setWindowTitle(f"{AppConfig().load()['app']['name']} - Main")
+        self.setWindowTitle(f"{AppConfig().load()['app']['name']}")
         self.setMinimumSize(400, 700)
 
         self.createToolBar()
         self.createMenuBar()
         self.createStatusBar()
 
-        self.setCentralWidget(NodeListView(self))
+        widget = QWidget()
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+
+        nodeList = NodeListView(self)
+        layout.addWidget(nodeList)
+
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
 
     def writeSettings(self):
         self.settings.setValue("geometry", self.saveGeometry())

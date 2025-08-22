@@ -24,8 +24,6 @@ class NodeListView(QListView):
         list_view.setSpacing(2)
         list_view.setModel(proxy)
         list_view.setWordWrap(True)
-        list_view.setMinimumWidth(390)
-        list_view.setMinimumHeight(500)
         list_view.setUniformItemSizes(True)
         list_view.setAlternatingRowColors(True)
         list_view.setItemDelegate(NodeStyledItemDelegate(list_view))

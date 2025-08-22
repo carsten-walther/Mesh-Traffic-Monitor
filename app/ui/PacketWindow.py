@@ -1,5 +1,5 @@
 from PyQt6.QtCore import QSettings, QByteArray
-from PyQt6.QtWidgets import QWidget, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
 
 from app.ui.views.PacketTableView import PacketTableView
 from app.utilities.AppConfig import AppConfig
@@ -16,10 +16,13 @@ class PacketWindow(QWidget):
         self.initUi()
 
     def initUi(self) -> None:
-        self.setWindowTitle(f"{AppConfig().load()['app']['name']} - Packet")
+        self.setWindowTitle("Packet")
         self.setMinimumSize(800, 300)
 
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+
         layout.addWidget(PacketTableView(self))
         self.setLayout(layout)
 
