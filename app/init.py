@@ -2,7 +2,7 @@ import sys
 
 from PyQt6.QtWidgets import QApplication
 
-from app.ui import MainWindow
+from app.ui.MainWindow import MainWindow
 
 
 def run() -> int:

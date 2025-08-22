@@ -1,5 +1,7 @@
 meshtastic==2.7.1
 Pypubsub==4.0.3
 PyQt6==6.9.1
+PyQtWebEngine
 pyserial==3.5
 urllib3==1.26.6
+folium==0.20.0
