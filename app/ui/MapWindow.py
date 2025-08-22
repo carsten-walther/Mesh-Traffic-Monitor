@@ -2,8 +2,8 @@ import os
 import folium
 import tempfile
 
-from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QSettings, QByteArray
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 
 from app.utilities.AppConfig import AppConfig
@@ -24,6 +24,7 @@ class MapWindow(QWidget):
 
         self.nodes = {}
         self.interface.node_discovered.connect(self.add_node)
+        self.update_map()
 
     def initUi(self) -> None:
         self.setWindowTitle(f"{AppConfig().load()['app']['name']} - Map")
@@ -35,7 +36,6 @@ class MapWindow(QWidget):
         layout.addWidget(self.web_view)
 
         self.setLayout(layout)
-        self.update_map()
 
     def writeSettings(self) -> None:
         self.settings.setValue("geometry", self.saveGeometry())
